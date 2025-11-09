@@ -4,3 +4,4 @@ node_modul
 .claude
 __pycache__/
 backend/.venv
+.env
