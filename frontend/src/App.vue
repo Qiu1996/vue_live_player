@@ -6,10 +6,13 @@ import { ref } from 'vue';
 const PLAYBACK_ID = ref(null);
 const STREAM_KEY = ref(null);
 const STREAM_URL = ref("https://player.mux.com/");
+const API_URL = import.meta.env.DEV
+  ? 'http://localhost:8000'
+  : 'https://vue-live-player.zeabur.app'
 
 async function postapi(){
   try{
-    const res = await fetch("http://127.0.0.1:8000/create_stream", {
+    const res = await fetch(`${API_URL}/create_stream`, {
       method: 'POST'
     });
     const date = await res.json();
