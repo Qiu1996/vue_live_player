@@ -2,3 +2,5 @@ node_modul
 .vscode
 .DS_Store
 .claude
+__pycache__/
+backend/.venv
