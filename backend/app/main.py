@@ -14,6 +14,8 @@ load_dotenv()
 
 app = FastAPI()
 
+stream_states = {}
+
 origins = ["http://localhost:5173", "https://qiu1996.github.io"]
 
 app.add_middleware(
@@ -48,3 +50,16 @@ def create_stream():
 
   except Exception as e:
     return {"error": str(e)}
+
+@app.post("/webhook")
+def receive_webhook(request: dict):
+  stream_id = request.get("data", {}).get("id")
+  event_type = request.get("type")
+  if stream_id:
+    stream_states[stream_id] = event_type
+  return {"status": "received"}
+
+@app.get("/stream_status/{stream_id}")
+def get_stream_status(stream_id):
+  status = stream_states.get(stream_id, "unknown")
+  return {"stream_id": stream_id, "status": status}
