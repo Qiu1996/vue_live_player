@@ -45,7 +45,8 @@ def create_stream():
 
     return {
       "stream_key": live_stream.data.stream_key,
-      "playback_id": live_stream.data.playback_ids[0].id
+      "playback_id": live_stream.data.playback_ids[0].id,
+      "stream_id": live_stream.data.id
     }
 
   except Exception as e:
