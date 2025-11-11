@@ -52,11 +52,20 @@ def create_stream():
     )
 
     live_stream = live_api.create_live_stream(create_request)
-    logger.info(f"建立直播成功: stream_id={live_stream.data.id}")
+    stream_key = live_stream.data.stream_key
+    stream_id = live_stream.data.id
+    playback_id = live_stream.data.playback_ids[0].id
+
+    stream_states[stream_id] = {
+      "status": "unknown",
+      "playback_id": playback_id
+    }
+
+    logger.info(f"建立直播成功: stream_id={stream_id}")
     return {
-      "stream_key": live_stream.data.stream_key,
-      "playback_id": live_stream.data.playback_ids[0].id,
-      "stream_id": live_stream.data.id
+      "stream_key": stream_key,
+      "playback_id": playback_id,
+      "stream_id": stream_id
     }
 
   except Exception as e:
@@ -67,15 +76,25 @@ def create_stream():
 def receive_webhook(request: dict):
   stream_id = request.get("data", {}).get("id")
   event_type = request.get("type")
+
   logger.info(f"收到 Webhook: {event_type}, stream_id={stream_id}")
-  if stream_id:
-    stream_states[stream_id] = event_type
+  if stream_id and stream_id in stream_states:
+    stream_states[stream_id]["status"] = event_type
   return {"status": "received"}
 
 @app.get("/stream_status/{stream_id}")
 def get_stream_status(stream_id):
-  status = stream_states.get(stream_id, "unknown")
+  data = stream_states.get(stream_id, {})
+  status = data.get("status", "unknown")
   return {"stream_id": stream_id, "status": status}
+
+@app.get("/view_stream_status/{playback_id}")
+def get_view_stream_status(playback_id):
+  for stream_id, data in stream_states.items():
+    if data.get("playback_id") == playback_id:
+      return {"status": data.get("status", "unknown")}
+  return {"status": "unknown"}
+
 
 @app.delete("/delete_stream/{stream_id}")
 def delete_stream(stream_id):
