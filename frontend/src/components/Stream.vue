@@ -1,16 +1,18 @@
 <script setup>
-
+import { ref, watch } from 'vue'
 const props = defineProps(["streamKey", "streamUrl", "streamServer", "streamStatus", "statusText", "statusType", "playbackId"]);
 const emit = defineEmits(["create-stream", "delete-stream"]);
-import { ref } from 'vue'
+const localStreamKey = ref(props.streamKey)
 
+watch(() => props.streamKey, (newVal) => {
+  localStreamKey.value = newVal
+})
 
 function copy(text) {
   navigator.clipboard.writeText(text)
   ElMessage.primary('複製成功')
 }
 
-const input = ref('')
 </script>
 
 <template>
@@ -22,11 +24,13 @@ const input = ref('')
     <el-form-item label="串流金鑰">
       <el-input
         style="width: 500px"
-        :value="streamKey"
+        v-model="localStreamKey"
         readonly
+        type="password"
+        show-password
       >
         <template #append>
-          <el-button @click="copy(streamKey)">複製</el-button>
+          <el-button @click="copy(localStreamKey)">複製</el-button>
         </template>
       </el-input>
     </el-form-item>
