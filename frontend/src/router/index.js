@@ -1,0 +1,15 @@
+import { createRouter, createWebHistory } from "vue-router"
+import Stream from '../components/Stream.vue'
+
+const routes = [{
+  path: "/",
+  name: "Stream",
+  component: Stream
+}]
+
+const router = createRouter({
+  history: createWebHistory("/vue_live_player/"),
+  routes
+})
+
+export default router

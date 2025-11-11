@@ -1,12 +1,81 @@
 <script setup>
-import { ref, watch } from 'vue'
-const props = defineProps(["streamKey", "streamUrl", "streamServer", "streamStatus", "statusText", "statusType", "playbackId"]);
-const emit = defineEmits(["create-stream", "delete-stream"]);
-const localStreamKey = ref(props.streamKey)
+import '@mux/mux-player'
+import { ref, watch, onUnmounted, onMounted } from 'vue'
+import {
+  STATUS_TEXT,
+  STATUS_TYPE,
+  STREAM_SERVER_URL,
+  MUX_PLAYER_BASE_URL
+} from "../constants.js"
 
-watch(() => props.streamKey, (newVal) => {
-  localStreamKey.value = newVal
+const API_URL = import.meta.env.DEV
+  ? 'http://localhost:8000'
+  : 'https://vue-live-player.zeabur.app'
+
+const PLAYBACK_ID = ref(null);
+const STREAM_KEY = ref(null);
+const STREAM_ID = ref(null);
+const STREAM_URL = ref(MUX_PLAYER_BASE_URL+PLAYBACK_ID)
+const STREAM_STATUS = ref("unknown");
+let pollingInterval = null;
+
+async function createStream(){
+  try{
+    const res = await fetch(`${API_URL}/create_stream`, {
+      method: 'POST'
+    });
+    const date = await res.json();
+    PLAYBACK_ID.value = date.playback_id;
+    STREAM_KEY.value = date.stream_key;
+    STREAM_ID.value = date.stream_id;
+
+    startPolling();
+  }catch(e){
+    console.log('err: ', e);
+  }
+}
+
+function startPolling(){
+  pollingInterval = setInterval(async () => {
+    const res = await fetch(`${API_URL}/stream_status/${STREAM_ID.value}`);
+    const data = await res.json();
+    STREAM_STATUS.value = data.status;
+    console.log(`STREAM_STATUS: `, STREAM_STATUS.value);
+    if(data.status === 'video.live_stream.disconnected'){
+      clearInterval(pollingInterval);
+    }
+  }, 3000)
+}
+
+onUnmounted(() => {
+  if(pollingInterval){
+    clearInterval(pollingInterval);
+  }
 })
+
+async function deleteStream(){
+  try{
+    const res = await fetch(`${API_URL}/delete_stream/${STREAM_ID.value}`, {
+      method: 'DELETE'
+    });
+
+    PLAYBACK_ID.value = null
+    STREAM_KEY.value = null
+    STREAM_ID.value = null
+    STREAM_STATUS.value = 'unknown'
+
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+
+    ElMessage.success('刪除成功');
+  }catch(e){
+    console.log('err: ', e);
+  }
+}
+
+
 
 function copy(text) {
   navigator.clipboard.writeText(text)
@@ -19,51 +88,51 @@ function copy(text) {
 <el-container direction="vertical">
   <el-main>
     <h2>串流設定</h2>
-    <el-button type="primary" @click="emit('create-stream')">建立直播</el-button>
-    <el-button type="danger" @click="emit('delete-stream')">刪除直播</el-button>
+    <el-button type="primary" @click="createStream">建立直播</el-button>
+    <el-button type="danger" @click="deleteStream">刪除直播</el-button>
     <el-form-item label="串流金鑰">
       <el-input
         style="width: 500px"
-        v-model="localStreamKey"
+        v-model="STREAM_KEY"
         readonly
         type="password"
         show-password
       >
         <template #append>
-          <el-button @click="copy(localStreamKey)">複製</el-button>
+          <el-button @click="copy(STREAM_KEY)">複製</el-button>
         </template>
       </el-input>
     </el-form-item>
     <el-form-item label="串流伺服器">
       <el-input
         style="width: 500px"
-        :value="streamServer"
+        :value="STREAM_SERVER_URL"
         readonly
       >
         <template #append>
-        <el-button @click="copy(streamServer)">複製</el-button>
+        <el-button @click="copy(STREAM_SERVER_URL)">複製</el-button>
         </template>
       </el-input>
     </el-form-item>
     <el-form-item label="串流網址">
       <el-input
         style="width: 500px"
-        :value="streamUrl"
+        :value="STREAM_URL"
         readonly
       >
         <template #append>
-        <el-button @click="copy(streamUrl)">複製</el-button>
+        <el-button @click="copy(STREAM_URL)">複製</el-button>
         </template>
       </el-input>
     </el-form-item>
     <el-form-item>
       <span>串流狀態 </span>
-      <el-tag :type="statusType" size="large">{{statusText}}</el-tag>
+      <el-tag :type="STATUS_TYPE[STREAM_STATUS]" size="large">{{STATUS_TEXT[STREAM_STATUS]}}</el-tag>
     </el-form-item>
     <h2>串流畫面預覽</h2>
     <mux-player
-      v-if="playbackId && playbackId !== 'null'"
-      :playback-id="playbackId"
+      v-if="PLAYBACK_ID && PLAYBACK_ID !== 'null'"
+      :playback-id="PLAYBACK_ID"
       controls
       autoplay
       muted
