@@ -1,7 +1,9 @@
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 from mux_python import (
   Configuration,
   ApiClient,
@@ -73,3 +75,23 @@ def delete_stream(stream_id):
     return {"stream_id": stream_id, "status": "deleted"}
   except Exception as e:
     return {"error": str(e)}
+
+
+def clean_idle_stream():
+  try:
+    streams = live_api.list_live_streams()
+    now = datetime.now()
+
+    for stream in streams.data:
+      created_at = datetime.fromtimestamp(int(stream.created_at))
+      idle_time = now - created_at
+      if stream.status == 'idle' and idle_time > timedelta(hours=24):
+        live_api.delete_live_stream(stream.id)
+        stream_states.pop(stream.id, None)
+
+  except Exception as e:
+    print("清理失敗:", str(e))
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(clean_idle_stream, 'interval', hours=24)
+scheduler.start()
