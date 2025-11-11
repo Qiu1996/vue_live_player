@@ -1,12 +1,16 @@
 <script setup>
 import '@mux/mux-player'
-import { ref, watch, onUnmounted, onMounted } from 'vue'
+import { ref, watch, onUnmounted, onMounted, computed } from 'vue'
 import {
   STATUS_TEXT,
   STATUS_TYPE,
   STREAM_SERVER_URL,
   MUX_PLAYER_BASE_URL
 } from "../constants.js"
+
+const BASE_URL = import.meta.env.DEV
+  ? 'http://localhost:5173/vue_live_player'
+  : 'https://qiu1996.github.io/vue_live_player'
 
 const API_URL = import.meta.env.DEV
   ? 'http://localhost:8000'
@@ -15,7 +19,7 @@ const API_URL = import.meta.env.DEV
 const PLAYBACK_ID = ref(null);
 const STREAM_KEY = ref(null);
 const STREAM_ID = ref(null);
-const STREAM_URL = ref(MUX_PLAYER_BASE_URL+PLAYBACK_ID)
+const STREAM_URL = computed(() => `${BASE_URL}/view/${PLAYBACK_ID.value}`)
 const STREAM_STATUS = ref("unknown");
 let pollingInterval = null;
 
