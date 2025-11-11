@@ -1,7 +1,7 @@
 <script setup>
 
 const props = defineProps(["streamKey", "streamUrl", "streamServer", "streamStatus", "statusText", "statusType", "playbackId"]);
-const emit = defineEmits(["create-stream"]);
+const emit = defineEmits(["create-stream", "delete-stream"]);
 import { ref } from 'vue'
 
 
@@ -18,7 +18,7 @@ const input = ref('')
   <el-main>
     <h2>串流設定</h2>
     <el-button type="primary" @click="emit('create-stream')">建立直播</el-button>
-    <el-button type="danger" >刪除直播</el-button>
+    <el-button type="danger" @click="emit('delete-stream')">刪除直播</el-button>
     <el-form-item label="串流金鑰">
       <el-input
         style="width: 500px"

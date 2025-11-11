@@ -21,7 +21,7 @@ origins = ["http://localhost:5173", "https://qiu1996.github.io"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
 )
 
 configuration = Configuration()
@@ -64,3 +64,12 @@ def receive_webhook(request: dict):
 def get_stream_status(stream_id):
   status = stream_states.get(stream_id, "unknown")
   return {"stream_id": stream_id, "status": status}
+
+@app.delete("/delete_stream/{stream_id}")
+def delete_stream(stream_id):
+  try:
+    live_api.delete_live_stream(stream_id)
+    stream_states.pop(stream_id, None)
+    return {"stream_id": stream_id, "status": "deleted"}
+  except Exception as e:
+    return {"error": str(e)}

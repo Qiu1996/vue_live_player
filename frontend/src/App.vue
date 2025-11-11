@@ -55,6 +55,27 @@ onUnmounted(() => {
   }
 })
 
+async function deleteStream(){
+  try{
+    const res = await fetch(`${API_URL}/delete_stream/${STREAM_ID.value}`, {
+      method: 'DELETE'
+    });
+
+    PLAYBACK_ID.value = null
+    STREAM_KEY.value = null
+    STREAM_ID.value = null
+    STREAM_STATUS.value = 'unknown'
+
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+
+    ElMessage.success('刪除成功');
+  }catch(e){
+    console.log('err: ', e);
+  }
+}
 
 </script>
 
@@ -67,6 +88,7 @@ onUnmounted(() => {
   :status-type="STATUS_TYPE[STREAM_STATUS]"
   :playback-id="PLAYBACK_ID"
   @create-stream="createStream"
+  @delete-stream="deleteStream"
 />
 
 
