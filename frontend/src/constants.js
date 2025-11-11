@@ -21,5 +21,10 @@
   export const STREAM_SERVER_URL =
   'rtmps://global-live.mux.com:443/app'
 
-  export const MUX_PLAYER_BASE_URL =
-  'https://player.mux.com/'
+  export const BASE_URL = import.meta.env.DEV
+    ? 'http://localhost:5173/vue_live_player'
+    : 'https://qiu1996.github.io/vue_live_player'
+
+  export const API_URL = import.meta.env.DEV
+    ? 'http://localhost:8000'
+    : 'https://vue-live-player.zeabur.app'

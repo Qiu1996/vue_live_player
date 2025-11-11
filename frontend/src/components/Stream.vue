@@ -5,16 +5,9 @@ import {
   STATUS_TEXT,
   STATUS_TYPE,
   STREAM_SERVER_URL,
-  MUX_PLAYER_BASE_URL
+  API_URL,
+  BASE_URL
 } from "../constants.js"
-
-const BASE_URL = import.meta.env.DEV
-  ? 'http://localhost:5173/vue_live_player'
-  : 'https://qiu1996.github.io/vue_live_player'
-
-const API_URL = import.meta.env.DEV
-  ? 'http://localhost:8000'
-  : 'https://vue-live-player.zeabur.app'
 
 const PLAYBACK_ID = ref(null);
 const STREAM_KEY = ref(null);
@@ -141,7 +134,7 @@ function copy(text) {
       autoplay
       muted
     ></mux-player>
-    <div v-else class="videobox">尚未建立直播</div>
+    <div v-else >尚未建立直播</div>
   </el-main>
 </el-container>
 </template>
