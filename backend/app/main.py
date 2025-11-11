@@ -1,4 +1,5 @@
 import os
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,13 @@ from mux_python import (
 )
 
 load_dotenv()
+
+logging.basicConfig(
+  level=logging.INFO,
+  format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -44,7 +52,7 @@ def create_stream():
     )
 
     live_stream = live_api.create_live_stream(create_request)
-
+    logger.info(f"建立直播成功: stream_id={live_stream.data.id}")
     return {
       "stream_key": live_stream.data.stream_key,
       "playback_id": live_stream.data.playback_ids[0].id,
@@ -52,12 +60,14 @@ def create_stream():
     }
 
   except Exception as e:
+    logger.error(f"建立直播失敗: {str(e)}")
     return {"error": str(e)}
 
 @app.post("/webhook")
 def receive_webhook(request: dict):
   stream_id = request.get("data", {}).get("id")
   event_type = request.get("type")
+  logger.info(f"收到 Webhook: {event_type}, stream_id={stream_id}")
   if stream_id:
     stream_states[stream_id] = event_type
   return {"status": "received"}
@@ -72,14 +82,17 @@ def delete_stream(stream_id):
   try:
     live_api.delete_live_stream(stream_id)
     stream_states.pop(stream_id, None)
+    logger.info(f"刪除直播: {stream_id}")
     return {"stream_id": stream_id, "status": "deleted"}
   except Exception as e:
+    logger.error(f"刪除直播失敗: {stream_id}, 錯誤: {str(e)}")
     return {"error": str(e)}
 
 
 def clean_idle_stream():
   try:
     streams = live_api.list_live_streams()
+    logger.info(f"開始清理閒置 stream，共 {len(streams.data)} 個")
     now = datetime.now()
 
     for stream in streams.data:
@@ -88,10 +101,12 @@ def clean_idle_stream():
       if stream.status == 'idle' and idle_time > timedelta(hours=24):
         live_api.delete_live_stream(stream.id)
         stream_states.pop(stream.id, None)
+        logger.info(f"刪除閒置 stream: {stream.id}")
 
   except Exception as e:
-    print("清理失敗:", str(e))
+    logger.error(f"清理失敗: {str(e)}")
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(clean_idle_stream, 'interval', hours=24)
 scheduler.start()
+logger.info("APScheduler 已啟動，每 24 小時清理一次閒置 stream")
