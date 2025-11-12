@@ -91,8 +91,8 @@ async def receive_webhook(request: dict):
 
   return {"status": "received"}
 
-@app.get("/view_stream_status/{playback_id}")
-def get_view_stream_status(playback_id):
+@app.get("/get_stream_id/{playback_id}")
+def get_stream_id(playback_id):
   stream_id = playback_to_stream.get(playback_id)
   if stream_id:
     status = stream_states[stream_id].get("status", "unknown")

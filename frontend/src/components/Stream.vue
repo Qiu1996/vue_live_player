@@ -22,10 +22,10 @@ async function createStream(){
     const res = await fetch(`${API_URL}/create_stream`, {
       method: 'POST'
     });
-    const date = await res.json();
-    PLAYBACK_ID.value = date.playback_id;
-    STREAM_KEY.value = date.stream_key;
-    STREAM_ID.value = date.stream_id;
+    const data = await res.json();
+    PLAYBACK_ID.value = data.playback_id;
+    STREAM_KEY.value = data.stream_key;
+    STREAM_ID.value = data.stream_id;
 
     connectWebSocket();
   }catch(e){

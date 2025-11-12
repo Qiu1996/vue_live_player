@@ -10,25 +10,33 @@ import {
 } from "../constants.js"
 
 const ROUTE = useRoute()
-const PLAYBACK_ID = ROUTE.params.playbackId
+const PLAYBACK_ID = ref(ROUTE.params.playbackId)
 const STREAM_STATUS = ref("unknown")
 const STREAM_ID = ref(null)
 let statusWs = null;
 
 async function getStreamId() {
-  const res = await fetch(`${API_URL}/view_stream_status/${PLAYBACK_ID}`);
+  if (statusWs) {
+    statusWs.close();
+    statusWs = null;
+  }
+  const res = await fetch(`${API_URL}/get_stream_id/${PLAYBACK_ID.value}`);
   const data = await res.json();
   STREAM_STATUS.value = data.status;
   STREAM_ID.value = data.stream_id;
+
+  if (data.stream_id) {
+    connectWebSocket();
+  }
 }
 
 getStreamId();
 
-watch(() => STREAM_ID.value, (newStreamId) => {
-  if (newStreamId && !statusWs) {
-    connectWebSocket();
-  }
-})
+watch(() => ROUTE.params.playbackId,(newPlaybackId) => {
+  PLAYBACK_ID.value = newPlaybackId;
+  getStreamId();
+},{ immediate: true })
+
 
 
 function connectWebSocket(){
@@ -37,7 +45,6 @@ function connectWebSocket(){
     : `wss://vue-live-player.zeabur.app/ws/status/${STREAM_ID.value}`;
 
   statusWs = new WebSocket(wsUrl);
-
   statusWs.onopen = () => {
     console.log("狀態 WebSocket 連線成功");
   }
