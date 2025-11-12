@@ -1,5 +1,6 @@
 <script setup>
 import '@mux/mux-player'
+import Chat from "./Chat.vue"
 import { ref, watch, onUnmounted, onMounted, computed } from 'vue'
 import {
   STATUS_TEXT,
@@ -82,8 +83,8 @@ function copy(text) {
 </script>
 
 <template>
-<el-container direction="vertical">
-  <el-main>
+<el-container>
+  <el-main style="border: 1px solid black">
     <h2>串流設定</h2>
     <el-button type="primary" @click="createStream">建立直播</el-button>
     <el-button type="danger" @click="deleteStream">刪除直播</el-button>
@@ -136,6 +137,12 @@ function copy(text) {
     ></mux-player>
     <div v-else >尚未建立直播</div>
   </el-main>
+  <el-aside width="500px" style="border: 1px solid black">
+    <Chat
+      :stream-id="STREAM_ID"
+      nickname="主播"
+    />
+  </el-aside>
 </el-container>
 </template>
 
