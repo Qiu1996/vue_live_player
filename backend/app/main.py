@@ -1,7 +1,7 @@
 import os
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 stream_states = {}
+
+active_connections = {}
 
 origins = ["http://localhost:5173", "https://qiu1996.github.io"]
 
@@ -124,6 +126,25 @@ def clean_idle_stream():
 
   except Exception as e:
     logger.error(f"清理失敗: {str(e)}")
+
+@app.websocket("/ws/chat/{stream_id}")
+async def ws_chat(websocket: WebSocket, stream_id: str):
+  await websocket.accept()
+
+  if stream_id not in active_connections:
+    active_connections[stream_id] = []
+  active_connections[stream_id].append(websocket)
+
+  try:
+    while True:
+      data = await websocket.receive_text()
+
+      for connection in active_connections[stream_id]:
+        await connection.send_text(data)
+  except WebSocketDisconnect:
+    active_connections[stream_id].remove(websocket)
+    logger.info(f"WebSocket 斷線: stream_id={stream_id}")
+
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(clean_idle_stream, 'interval', hours=24)
