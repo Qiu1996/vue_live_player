@@ -1,5 +1,6 @@
 <script setup>
 import '@mux/mux-player'
+import Chat from "./Chat.vue"
 import { useRoute } from 'vue-router'
 import { ref, onUnmounted } from 'vue'
 import {
@@ -11,6 +12,7 @@ import {
 const ROUTE = useRoute()
 const PLAYBACK_ID = ROUTE.params.playbackId
 const STREAM_STATUS = ref("unknown")
+const STREAM_ID = ref(null)
 let pollingInterval = null;
 
 function startPolling(){
@@ -18,7 +20,8 @@ function startPolling(){
     const res = await fetch(`${API_URL}/view_stream_status/${PLAYBACK_ID}`);
     const data = await res.json();
     STREAM_STATUS.value = data.status;
-    console.log(STREAM_STATUS.value);
+    STREAM_ID.value = data.stream_id
+    console.log("View >>> ", STREAM_ID.value);
     if(data.status === 'unknown' || data.status === 'video.live_stream.disconnected'){
       clearInterval(pollingInterval);
     }
@@ -34,6 +37,8 @@ onUnmounted(() => {
 })
 </script>
 <template>
+<el-container>
+<el-main style="border: 1px solid black">
 <div v-if="STREAM_STATUS === 'unknown' || STREAM_STATUS === 'video.live_stream.disconnected'">
   <h2>直播已結束</h2>
   <p>感謝觀看</p>
@@ -52,6 +57,14 @@ onUnmounted(() => {
     muted
   ></mux-player>
 </div>
+</el-main>
+<el-aside width="500px" style="border: 1px solid black">
+  <Chat
+    :stream-id="STREAM_ID"
+    nickname="觀眾"
+  />
+</el-aside>
+</el-container>
 
 </template>
 <style scoped></style>

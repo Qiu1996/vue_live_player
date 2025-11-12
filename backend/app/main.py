@@ -98,8 +98,8 @@ def get_view_stream_status(playback_id):
   stream_id = playback_to_stream.get(playback_id)
   if stream_id:
     status = stream_states[stream_id].get("status", "unknown")
-    return {"status": status}
-  return {"status": "unknown"}
+    return {"status": status, "stream_id": stream_id}
+  return {"status": "unknown", "stream_id": None}
 
 
 @app.delete("/delete_stream/{stream_id}")
