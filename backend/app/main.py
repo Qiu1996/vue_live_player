@@ -25,9 +25,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 stream_states = {}
-
 active_connections = {}
-
+status_connections = {}
 playback_to_stream = {}
 
 origins = ["http://localhost:5173", "https://qiu1996.github.io"]
@@ -78,20 +77,19 @@ def create_stream():
     return {"error": str(e)}
 
 @app.post("/webhook")
-def receive_webhook(request: dict):
+async def receive_webhook(request: dict):
   stream_id = request.get("data", {}).get("id")
   event_type = request.get("type")
 
   logger.info(f"收到 Webhook: {event_type}, stream_id={stream_id}")
   if stream_id and stream_id in stream_states:
     stream_states[stream_id]["status"] = event_type
-  return {"status": "received"}
 
-@app.get("/stream_status/{stream_id}")
-def get_stream_status(stream_id):
-  data = stream_states.get(stream_id, {})
-  status = data.get("status", "unknown")
-  return {"stream_id": stream_id, "status": status}
+    if stream_id in status_connections:
+      for connection in status_connections[stream_id]:
+        await connection.send_text(event_type)
+
+  return {"status": "received"}
 
 @app.get("/view_stream_status/{playback_id}")
 def get_view_stream_status(playback_id):
@@ -155,6 +153,19 @@ async def ws_chat(websocket: WebSocket, stream_id: str):
     active_connections[stream_id].remove(websocket)
     logger.info(f"WebSocket 斷線: stream_id={stream_id}")
 
+@app.websocket("/ws/status/{stream_id}")
+async def ws_status(websocket: WebSocket, stream_id: str):
+  await websocket.accept()
+  if stream_id not in status_connections:
+    status_connections[stream_id] = []
+  status_connections[stream_id].append(websocket)
+
+  try:
+    while True:
+      await websocket.receive_text()
+  except WebSocketDisconnect:
+    status_connections[stream_id].remove(websocket)
+    logger.info(f"狀態 WebSocket 斷線: stream_id={stream_id}")
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(clean_idle_stream, 'interval', hours=24)
