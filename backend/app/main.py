@@ -28,6 +28,8 @@ stream_states = {}
 
 active_connections = {}
 
+playback_to_stream = {}
+
 origins = ["http://localhost:5173", "https://qiu1996.github.io"]
 
 app.add_middleware(
@@ -62,6 +64,7 @@ def create_stream():
       "status": "unknown",
       "playback_id": playback_id
     }
+    playback_to_stream[playback_id] = stream_id
 
     logger.info(f"建立直播成功: stream_id={stream_id}")
     return {
@@ -92,9 +95,10 @@ def get_stream_status(stream_id):
 
 @app.get("/view_stream_status/{playback_id}")
 def get_view_stream_status(playback_id):
-  for stream_id, data in stream_states.items():
-    if data.get("playback_id") == playback_id:
-      return {"status": data.get("status", "unknown")}
+  stream_id = playback_to_stream.get(playback_id)
+  if stream_id:
+    status = stream_states[stream_id].get("status", "unknown")
+    return {"status": status}
   return {"status": "unknown"}
 
 
@@ -102,7 +106,10 @@ def get_view_stream_status(playback_id):
 def delete_stream(stream_id):
   try:
     live_api.delete_live_stream(stream_id)
+    playback_id = stream_states.get(stream_id, {}).get("playback_id")
     stream_states.pop(stream_id, None)
+    if playback_id:
+      playback_to_stream.pop(playback_id, None)
     logger.info(f"刪除直播: {stream_id}")
     return {"stream_id": stream_id, "status": "deleted"}
   except Exception as e:
@@ -121,7 +128,10 @@ def clean_idle_stream():
       idle_time = now - created_at
       if stream.status == 'idle' and idle_time > timedelta(hours=24):
         live_api.delete_live_stream(stream.id)
+        playback_id = stream_states.get(stream.id, {}).get("playback_id")
         stream_states.pop(stream.id, None)
+        if playback_id:
+          playback_to_stream.pop(playback_id, None)
         logger.info(f"刪除閒置 stream: {stream.id}")
 
   except Exception as e:
