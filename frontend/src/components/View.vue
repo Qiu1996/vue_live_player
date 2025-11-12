@@ -2,7 +2,7 @@
 import '@mux/mux-player'
 import Chat from "./Chat.vue"
 import { useRoute } from 'vue-router'
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 import {
   STATUS_TEXT,
   STATUS_TYPE,
@@ -13,33 +13,55 @@ const ROUTE = useRoute()
 const PLAYBACK_ID = ROUTE.params.playbackId
 const STREAM_STATUS = ref("unknown")
 const STREAM_ID = ref(null)
-let pollingInterval = null;
+let statusWs = null;
 
-function startPolling(){
-  pollingInterval = setInterval(async () => {
-    const res = await fetch(`${API_URL}/view_stream_status/${PLAYBACK_ID}`);
-    const data = await res.json();
-    STREAM_STATUS.value = data.status;
-    STREAM_ID.value = data.stream_id
-    console.log("View >>> ", STREAM_ID.value);
-    if(data.status === 'unknown' || data.status === 'video.live_stream.disconnected'){
-      clearInterval(pollingInterval);
-    }
-  }, 3000)
+async function getStreamId() {
+  const res = await fetch(`${API_URL}/view_stream_status/${PLAYBACK_ID}`);
+  const data = await res.json();
+  STREAM_STATUS.value = data.status;
+  STREAM_ID.value = data.stream_id;
 }
 
-startPolling();
+getStreamId();
+
+watch(() => STREAM_ID.value, (newStreamId) => {
+  if (newStreamId && !statusWs) {
+    connectWebSocket();
+  }
+})
+
+
+function connectWebSocket(){
+  const wsUrl = import.meta.env.DEV
+    ?`ws://localhost:8000/ws/status/${STREAM_ID.value}`
+    : `wss://vue-live-player.zeabur.app/ws/status/${STREAM_ID.value}`;
+
+  statusWs = new WebSocket(wsUrl);
+
+  statusWs.onopen = () => {
+    console.log("狀態 WebSocket 連線成功");
+  }
+
+  statusWs.onmessage = (e) => {
+    STREAM_STATUS.value = e.data;
+    console.log(`狀態更新: ${e.data}`);
+  }
+
+  statusWs.onclose = () => {
+    console.log("狀態 WebSocket 連線關閉");
+  }
+}
 
 onUnmounted(() => {
-  if(pollingInterval){
-    clearInterval(pollingInterval);
+  if(statusWs){
+    statusWs.close();
   }
 })
 </script>
 <template>
 <el-container>
 <el-main style="border: 1px solid black">
-<div v-if="STREAM_STATUS === 'unknown' || STREAM_STATUS === 'video.live_stream.disconnected'">
+<div v-if="STREAM_STATUS === 'unknown'">
   <h2>直播已結束</h2>
   <p>感謝觀看</p>
 </div>

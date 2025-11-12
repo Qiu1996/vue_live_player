@@ -15,7 +15,7 @@ const STREAM_KEY = ref(null);
 const STREAM_ID = ref(null);
 const STREAM_URL = computed(() => `${BASE_URL}/#/view/${PLAYBACK_ID.value}`)
 const STREAM_STATUS = ref("unknown");
-let pollingInterval = null;
+let statusWs = null;
 
 async function createStream(){
   try{
@@ -27,27 +27,36 @@ async function createStream(){
     STREAM_KEY.value = date.stream_key;
     STREAM_ID.value = date.stream_id;
 
-    startPolling();
+    connectWebSocket();
   }catch(e){
     console.log('err: ', e);
   }
 }
 
-function startPolling(){
-  pollingInterval = setInterval(async () => {
-    const res = await fetch(`${API_URL}/stream_status/${STREAM_ID.value}`);
-    const data = await res.json();
-    STREAM_STATUS.value = data.status;
-    console.log(`STREAM_STATUS: `, STREAM_STATUS.value);
-    if(data.status === 'video.live_stream.disconnected'){
-      clearInterval(pollingInterval);
-    }
-  }, 3000)
+function connectWebSocket(){
+  const wsUrl = import.meta.env.DEV
+    ?`ws://localhost:8000/ws/status/${STREAM_ID.value}`
+    : `wss://vue-live-player.zeabur.app/ws/status/${STREAM_ID.value}`;
+
+  statusWs = new WebSocket(wsUrl);
+
+  statusWs.onopen = () => {
+    console.log("狀態 WebSocket 連線成功");
+  }
+
+  statusWs.onmessage = (e) => {
+    STREAM_STATUS.value = e.data;
+    console.log(`狀態更新: ${e.data}`);
+  }
+
+  statusWs.onclose = () => {
+    console.log("狀態 WebSocket 連線關閉");
+  }
 }
 
 onUnmounted(() => {
-  if(pollingInterval){
-    clearInterval(pollingInterval);
+  if(statusWs){
+    statusWs.close();
   }
 })
 
@@ -62,9 +71,9 @@ async function deleteStream(){
     STREAM_ID.value = null
     STREAM_STATUS.value = 'unknown'
 
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
+    if (statusWs) {
+      statusWs.close()
+      statusWs = null
     }
 
     ElMessage.success('刪除成功');
