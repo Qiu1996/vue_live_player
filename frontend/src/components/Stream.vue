@@ -12,7 +12,7 @@ import {
 const PLAYBACK_ID = ref(null);
 const STREAM_KEY = ref(null);
 const STREAM_ID = ref(null);
-const STREAM_URL = computed(() => `${BASE_URL}/view/${PLAYBACK_ID.value}`)
+const STREAM_URL = computed(() => `${BASE_URL}/#/view/${PLAYBACK_ID.value}`)
 const STREAM_STATUS = ref("unknown");
 let pollingInterval = null;
 

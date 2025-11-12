@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router"
+import { createRouter, createWebHashHistory } from "vue-router"
 import Stream from '../components/Stream.vue'
 import View from '../components/View.vue'
 
@@ -15,7 +15,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory("/vue_live_player/"),
+  history: createWebHashHistory("/vue_live_player/"),
   routes
 })
 
