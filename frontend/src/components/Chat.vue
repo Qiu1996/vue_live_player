@@ -7,14 +7,19 @@ const inputMessage = ref("");
 
 let ws = null;
 
-watch(() => props.streamId, (newStreamId) => {
+watch(() => props.streamId, (newStreamId, oldStreamId) => {
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+
+  messages.value = []
+
   if (!newStreamId) {
     console.log('尚未建立直播，聊天室待命中...')
     return
   }
-  if (ws) {
-    return
-  }
+
   const wsUrl = import.meta.env.DEV
     ? `ws://localhost:8000/ws/chat/${props.streamId}`
     : `wss://vue-live-player.zeabur.app/ws/chat/${props.streamId}`;
@@ -32,7 +37,6 @@ watch(() => props.streamId, (newStreamId) => {
   ws.onclose = () => {
     console.log("ws 連線關閉")
   }
-
 }, { immediate: true })
 
 onUnmounted(() => {
